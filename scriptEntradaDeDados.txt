@@ -1,0 +1,63 @@
+/**
+ * Atualiza a tabela 'tabelaTratativas' no workbook com os dados fornecidos.
+ *
+ * @param workbook - O workbook que contém a tabela.
+ * @param placas - Uma string contendo as placas, separadas por vírgulas ou espaço.
+ * @param responsavel - O responsável pela tratativa.
+ * @param status - O status da tratativa: "Agendado", "Instalado" ou "Cancelado".
+ * @param valor - Valor do serviço, valor padrão R$100,00.
+ * @param observacao - Campo observações (opcional).
+ */
+function main(
+  workbook: ExcelScript.Workbook,
+  placas: string,
+  responsavel: string,
+  status: "Agendado" | "Instalado" | "Cancelado",
+  valor: number = 100,
+  observacoes?: string
+) {
+  // Marca o tempo inicial.
+  const startTime = new Date().getTime();
+
+  // Calcula a data atual no formato do Excel.
+  const formatarDataAtual= 25569.0 + ((startTime - (new Date().getTimezoneOffset() * 60 * 1000)) / (1000 * 60 * 60 * 24));
+
+  // Obtém a aba 'Tratativas' e entra em uma view temporária.
+  const abaTratativas = workbook.getWorksheet("Tratativas");
+  abaTratativas.enterTemporaryNamedSheetView();
+
+  // Obtém a tabela 'tabelaTratativas' e limpa qualquer filtro existente.
+  const tabela = workbook.getTable("tabelaTratativas");
+  tabela.getAutoFilter().clearCriteria();
+
+  // Divide a string 'placas' em um vetor, usando vírgula ou espaço como delimitador.
+  const vetorPlacas = placas.split(',').length > 1 ? placas.split(',') : placas.split(' ');
+
+  // Aplica um filtro à coluna "Placa" usando os valores em 'vetorPlacas'.
+  tabela.getColumnByName("Placa").getFilter().applyValuesFilter(vetorPlacas);
+
+  // Verifica o número de linhas visíveis após a filtragem.
+  const qtdeLinhas = tabela.getColumnByName("Placa").getRangeBetweenHeaderAndTotal().getVisibleView().getValues().length;
+
+  // Se houver mais de uma linha visível e o responsável for diferente de vazio, atualiza as colunas.
+  if (qtdeLinhas > 1) {
+    tabela.getColumnByName("Responsável").getRangeBetweenHeaderAndTotal().getVisibleView().getRange().setValues(responsavel);
+    tabela.getColumnByName("Status").getRangeBetweenHeaderAndTotal().getVisibleView().getRange().setValues(status);
+    tabela.getColumnByName("Data da Atualização").getRangeBetweenHeaderAndTotal().getVisibleView().getRange().setValues(formatarDataAtual);
+    tabela.getColumnByName("Valor").getRangeBetweenHeaderAndTotal().getVisibleView().getRange().setValues(valor);
+    if (observacoes) {
+      tabela.getColumnByName("Observações").getRangeBetweenHeaderAndTotal().getVisibleView().getRange().setValues(observacoes);
+    }
+    console.log(Atualizados ${qtdeLinhas} registros com sucesso.);
+    } else {
+    console.log("Nenhum registro corresponde ao filtro aplicado.");
+  }
+
+  // Sai da view temporária.
+  abaTratativas.exitActiveNamedSheetView();
+
+  // Calcula e registra o tempo total de execução.
+  const endTime = new Date().getTime();
+  const totalTime = (endTime - startTime) / 1000;
+  console.log(Tempo total de execução: ${totalTime.toFixed(2)} segundos.);
+}
