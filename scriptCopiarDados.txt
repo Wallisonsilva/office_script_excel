@@ -1,0 +1,32 @@
+/**
+ * Filtra os dados da tabela "tabelaReddit" no workbook, retornando apenas as linhas onde a coluna 'subreddit' é igual a "analytics".
+ * @param {ExcelScript.Workbook} workbook - O workbook do Excel.
+ * @returns {string} Uma representação JSON dos dados filtrados.
+ */
+function main(workbook: ExcelScript.Workbook): string {
+
+  // Obtém a aba chamada 'reddit_database' no workbook
+  const abaReddit = workbook.getWorksheet('reddit_database')
+
+  // Define a visualização temporária
+  abaReddit.enterTemporaryNamedSheetView();
+
+  // Obtém a tabela chamada "tabelaReddit" no workbook
+  const tabelaReddit = abaReddit.getTable('tabelaReddit');
+
+  if (!tabelaReddit) {
+    throw new Error("A tabela 'tabelaReddit' não foi encontrada no workbook.");
+  }
+
+  // Obtém a coluna "subreddit" e aplica o filtro para "analytics"
+  const colunaSubreddit = tabelaReddit.getColumnByName('subreddit');
+  colunaSubreddit.getFilter().applyValuesFilter(['analytics']);
+
+  // Obtém os dados filtrados
+  const dadosFiltrados = tabelaReddit.getRangeBetweenHeaderAndTotal().getVisibleView().getRange().getVisibleView().getValues();
+
+  // Limpa a visualização temporária
+  abaReddit.exitActiveNamedSheetView();
+
+  return JSON.stringify(dadosFiltrados);
+}
