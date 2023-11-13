@@ -1,0 +1,77 @@
+/**
+ * Calcula as distâncias entre os prestadores e ponto de atendimento utilizando a fórmula de Haversine.
+ * @param workbook - A planilha do Excel.
+ * @param coord - Coordenadas do ponto de atendimento no formato 'latitude,longitude'.
+ * @returns Os três prestadores mais próximos, com detalhes e distâncias.
+ */
+function main(workbook: ExcelScript.Workbook, coord: string) {
+    let planilhaPrestadores = workbook.getWorksheet('Prestadores');
+
+    // Obter a latitude e longitude do ponto de atendimento a partir da string 'coord'
+    let [latitudeUsuario, longitudeUsuario] = coord.replace(" ", "").split(',').map(str => Number(str));
+
+    // Preparar o array para guardar distâncias e detalhes dos prestadores
+    let distancias: PrestadorDistancia[] = [];
+
+    // Obter os dados dos prestadores
+    let dadosPrestadores = planilhaPrestadores.getUsedRange().getValues();
+
+    // Calcular a distância para cada prestador usando a fórmula de Haversine
+    for (let i = 1; i < dadosPrestadores.length; i++) {
+        let [latitudePrestador, longitudePrestador] = [dadosPrestadores[i][4], dadosPrestadores[i][5]].map(coordenada => Number(coordenada.toString().replace(',', '.')));
+
+        let distancia = haversine(latitudeUsuario, longitudeUsuario, latitudePrestador, longitudePrestador);
+
+        distancias.push({
+            distancia: distancia,
+            prestador: dadosPrestadores[i][1].toString(),
+            local: dadosPrestadores[i][0].toString(),
+            coordenadas: ${latitudePrestador}, ${longitudePrestador}
+        });
+    }
+
+    // Ordenar pelo valor da distância
+    distancias.sort((a, b) => a.distancia - b.distancia);
+
+    // Pegar as três menores distâncias e seus detalhes
+    let maisProximos = distancias.slice(0, 3);
+
+    return maisProximos;
+}
+
+/**
+ * Calcula a distância entre dois pontos usando a fórmula de Haversine.
+ * @param lat1 - Latitude do primeiro ponto.
+ * @param lon1 - Longitude do primeiro ponto.
+ * @param lat2 - Latitude do segundo ponto.
+ * @param lon2 - Longitude do segundo ponto.
+ * @returns A distância entre os dois pontos em quilômetros.
+ */
+function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371;
+    const dLat = grausParaRadianos(lat2 - lat1);
+    const dLon = grausParaRadianos(lon2 - lon1);
+    lat1 = grausParaRadianos(lat1);
+    lat2 = grausParaRadianos(lat2);
+
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+/**
+ * Converte graus em radianos.
+ * @param graus - O valor em graus.
+ * @returns O valor em radianos.
+ */
+function grausParaRadianos(graus: number): number {
+    return graus * (Math.PI / 180);
+}
+
+interface PrestadorDistancia {
+    distancia: number;
+    prestador: string;
+    local: string;
+    coordenadas: string;
+}
